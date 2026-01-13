@@ -12,9 +12,9 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
     // Combine both states for the UI overlay
     const showLoader = !imagesLoaded || !minTimeElapsed;
 
-    // Enforce minimum 4-second load time for branding
+    // Enforce minimum 1-second load time for branding
     useEffect(() => {
-        const timer = setTimeout(() => setMinTimeElapsed(true), 4000);
+        const timer = setTimeout(() => setMinTimeElapsed(true), 1000);
         return () => clearTimeout(timer);
     }, []);
 
