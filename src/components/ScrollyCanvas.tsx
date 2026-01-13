@@ -23,9 +23,18 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
 
         const timer = setTimeout(() => setMinTimeElapsed(true), 1000);
 
+        // Safety fallback: Ensure loader dismisses after 5s even if assets fail
+        const safetyTimer = setTimeout(() => {
+            if (!contentLoaded) {
+                console.warn("Safety timeout triggered: Forcing loader dismissal");
+                setContentLoaded(true);
+            }
+        }, 5000);
+
         return () => {
             window.removeEventListener("resize", checkMobile);
             clearTimeout(timer);
+            clearTimeout(safetyTimer);
         };
     }, []);
 
@@ -65,7 +74,7 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
     // 3. Preload images (Desktop) OR Handle Video (Mobile)
     useEffect(() => {
         if (isMobile) {
-            // Mobile: Content is ready when video starts (handled by video onLoadedData)
+            // Mobile: Content is ready when video events fire
             return;
         }
 
@@ -152,6 +161,8 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
                     playsInline
                     className="absolute inset-0 w-full h-full object-cover"
                     onLoadedData={() => setContentLoaded(true)}
+                    onLoadedMetadata={() => setContentLoaded(true)}
+                    onCanPlay={() => setContentLoaded(true)}
                 />
             ) : (
                 <canvas ref={canvasRef} className="block w-full h-full object-cover" />
