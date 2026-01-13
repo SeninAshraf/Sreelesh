@@ -145,7 +145,7 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
         <div className="relative w-full h-full">
             {isMobile ? (
                 <video
-                    src="/videos/RESPONSE.mp4"
+                    src="/videos/SENIN.mp4"
                     autoPlay
                     muted
                     loop
