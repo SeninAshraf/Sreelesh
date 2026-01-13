@@ -6,16 +6,27 @@ import { useEffect, useRef, useState } from "react";
 export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [images, setImages] = useState<HTMLImageElement[]>([]);
-    const [imagesLoaded, setImagesLoaded] = useState(false);
+    const [contentLoaded, setContentLoaded] = useState(false);
     const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     // Combine both states for the UI overlay
-    const showLoader = !imagesLoaded || !minTimeElapsed;
+    const showLoader = !contentLoaded || !minTimeElapsed;
 
-    // Enforce minimum 1-second load time for branding
+    // 1. Detect Mobile & Enforce minimum 1-second load time
     useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.matchMedia("(max-width: 768px)").matches);
+        };
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+
         const timer = setTimeout(() => setMinTimeElapsed(true), 1000);
-        return () => clearTimeout(timer);
+
+        return () => {
+            window.removeEventListener("resize", checkMobile);
+            clearTimeout(timer);
+        };
     }, []);
 
     const { scrollYProgress } = useScroll();
@@ -26,8 +37,10 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
     // Transform scroll (0-1) to frame index
     const frameIndex = useTransform(scrollYProgress, [0, 1], [0, effectiveFrames - 1]);
 
-    // Handle Resize Logic Separately
+    // 2. Handle Resize Logic Separately (Desktop Only)
     useEffect(() => {
+        if (isMobile) return;
+
         const handleResize = () => {
             if (!canvasRef.current) return;
             // Cap DPR at 1 for maximum performance
@@ -47,10 +60,15 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
 
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
-    }, [imagesLoaded, images]); // Re-run if images load
+    }, [contentLoaded, images, isMobile]);
 
-    // Preload images (Load ALL frames sequentially)
+    // 3. Preload images (Desktop) OR Handle Video (Mobile)
     useEffect(() => {
+        if (isMobile) {
+            // Mobile: Content is ready when video starts (handled by video onLoadedData)
+            return;
+        }
+
         const loadImages = async () => {
             const loadedImages: HTMLImageElement[] = [];
             const promises: Promise<void>[] = [];
@@ -66,23 +84,22 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
                     };
                     img.onerror = () => {
                         console.error(`Failed to load frame ${i}`);
-                        resolve(); // Resolve anyway to avoid hanging
+                        resolve();
                     }
                 });
                 promises.push(promise);
-                // Pre-allocate to preserve order (though JS arrays are sparse)
                 loadedImages[i] = null as any;
             }
 
             await Promise.all(promises);
             setImages(loadedImages);
-            setImagesLoaded(true);
+            setContentLoaded(true);
         };
 
         loadImages();
-    }, [numFrames]);
+    }, [numFrames, isMobile]);
 
-    // Efficient Render Function
+    // 4. Efficient Render Function (Desktop)
     const renderFrame = (index: number, imgs: HTMLImageElement[]) => {
         const canvas = canvasRef.current;
         if (!canvas || !imgs[index]) return;
@@ -105,17 +122,17 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
         ctx.drawImage(img, x, y, iw * scale, ih * scale);
     };
 
-    // Initial render when loaded
+    // 5. Initial render when loaded (Desktop)
     useEffect(() => {
-        if (imagesLoaded && images.length > 0) {
+        if (!isMobile && contentLoaded && images.length > 0) {
             renderFrame(0, images);
         }
-    }, [imagesLoaded]);
+    }, [contentLoaded, isMobile]);
 
-    // Subscribe to scroll changes to re-render using RequestAnimationFrame for perf
+    // 6. Subscribe to scroll changes (Desktop)
     let isTicking = false;
     useMotionValueEvent(frameIndex, "change", (latest) => {
-        if (!imagesLoaded || images.length === 0 || isTicking) return;
+        if (isMobile || !contentLoaded || images.length === 0 || isTicking) return;
         isTicking = true;
         requestAnimationFrame(() => {
             const index = Math.floor(latest);
@@ -126,21 +143,43 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
 
     return (
         <div className="relative w-full h-full">
-            <canvas ref={canvasRef} className="block w-full h-full object-cover" />
-            {showLoader && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0a0a] z-50 transition-opacity duration-700">
-                    <motion.h1
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="text-4xl md:text-6xl font-cinzel font-bold tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-br from-gray-100 via-gray-400 to-gray-600 animate-pulse"
-                        style={{ textShadow: "0px 0px 20px rgba(255,255,255,0.1)" }}
-                    >
-                        SREELESH C
-                    </motion.h1>
-                    <div className="mt-4 w-32 h-[1px] bg-gradient-to-r from-transparent via-gray-500 to-transparent opacity-50" />
-                </div>
+            {isMobile ? (
+                <video
+                    src="/videos/RESPONSE.mp4"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onLoadedData={() => setContentLoaded(true)}
+                />
+            ) : (
+                <canvas ref={canvasRef} className="block w-full h-full object-cover" />
             )}
+
+            <AnimatePresence>
+                {showLoader && (
+                    <motion.div
+                        key="loader"
+                        initial={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 1.2, ease: "easeInOut" }}
+                        className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0a0a] z-50 pointer-events-none"
+                    >
+                        <motion.h1
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 1.1 }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                            className="text-4xl md:text-6xl font-cinzel font-bold tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-br from-gray-100 via-gray-400 to-gray-600 animate-pulse"
+                            style={{ textShadow: "0px 0px 20px rgba(255,255,255,0.1)" }}
+                        >
+                            SREELESH C
+                        </motion.h1>
+                        <div className="mt-4 w-32 h-[1px] bg-gradient-to-r from-transparent via-gray-500 to-transparent opacity-50" />
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
