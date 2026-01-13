@@ -6,7 +6,18 @@ import { useEffect, useRef, useState } from "react";
 export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [images, setImages] = useState<HTMLImageElement[]>([]);
-    const [isLoaded, setIsLoaded] = useState(false);
+    const [imagesLoaded, setImagesLoaded] = useState(false);
+    const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+
+    // Combine both states for the UI overlay
+    const showLoader = !imagesLoaded || !minTimeElapsed;
+
+    // Enforce minimum 4-second load time for branding
+    useEffect(() => {
+        const timer = setTimeout(() => setMinTimeElapsed(true), 4000);
+        return () => clearTimeout(timer);
+    }, []);
+
     const { scrollYProgress } = useScroll();
 
     // Use all frames for smoothness since we only have 48
@@ -36,7 +47,7 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
 
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
-    }, [isLoaded, images]); // Re-run if images load
+    }, [imagesLoaded, images]); // Re-run if images load
 
     // Preload images (Load ALL frames sequentially)
     useEffect(() => {
@@ -65,7 +76,7 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
 
             await Promise.all(promises);
             setImages(loadedImages);
-            setIsLoaded(true);
+            setImagesLoaded(true);
         };
 
         loadImages();
@@ -96,15 +107,15 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
 
     // Initial render when loaded
     useEffect(() => {
-        if (isLoaded && images.length > 0) {
+        if (imagesLoaded && images.length > 0) {
             renderFrame(0, images);
         }
-    }, [isLoaded]);
+    }, [imagesLoaded]);
 
     // Subscribe to scroll changes to re-render using RequestAnimationFrame for perf
     let isTicking = false;
     useMotionValueEvent(frameIndex, "change", (latest) => {
-        if (!isLoaded || images.length === 0 || isTicking) return;
+        if (!imagesLoaded || images.length === 0 || isTicking) return;
         isTicking = true;
         requestAnimationFrame(() => {
             const index = Math.floor(latest);
@@ -116,7 +127,7 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
     return (
         <div className="relative w-full h-full">
             <canvas ref={canvasRef} className="block w-full h-full object-cover" />
-            {!isLoaded && (
+            {showLoader && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0a0a] z-50 transition-opacity duration-700">
                     <motion.h1
                         initial={{ opacity: 0, scale: 0.9 }}
