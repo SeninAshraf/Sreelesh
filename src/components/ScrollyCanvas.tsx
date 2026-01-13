@@ -11,7 +11,8 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
     const [isMobile, setIsMobile] = useState(false);
 
     // Combine both states for the UI overlay
-    const showLoader = !contentLoaded || !minTimeElapsed;
+    // On mobile, we trust the timer because we have a poster image fallback
+    const showLoader = isMobile ? !minTimeElapsed : (!contentLoaded || !minTimeElapsed);
 
     // 1. Detect Mobile & Enforce minimum 1-second load time
     useEffect(() => {
@@ -153,17 +154,26 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
     return (
         <div className="relative w-full h-full">
             {isMobile ? (
-                <video
-                    src="/videos/senin.mp4"
-                    preload="auto"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    className="absolute inset-0 w-full h-full object-cover"
-                    onLoadedData={() => setContentLoaded(true)}
-                    onCanPlay={() => setContentLoaded(true)}
-                />
+                <>
+                    {/* Instant Fallback Image (Poster) */}
+                    <img
+                        src="/sequence/frame_000.png"
+                        alt="Background"
+                        className="absolute inset-0 w-full h-full object-cover -z-10"
+                    />
+                    <video
+                        src="/videos/senin.mp4"
+                        poster="/sequence/frame_000.png"
+                        preload="auto"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        className="absolute inset-0 w-full h-full object-cover"
+                        onLoadedData={() => setContentLoaded(true)}
+                        onCanPlay={() => setContentLoaded(true)}
+                    />
+                </>
             ) : (
                 <canvas ref={canvasRef} className="block w-full h-full object-cover" />
             )}
