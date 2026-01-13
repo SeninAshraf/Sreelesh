@@ -1,17 +1,16 @@
 "use client";
 
-import { useScroll, useMotionValueEvent, useTransform } from "framer-motion";
+import { motion, useScroll, useMotionValueEvent, useTransform } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
-export default function ScrollyCanvas({ numFrames = 120 }: { numFrames?: number }) {
+export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [images, setImages] = useState<HTMLImageElement[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
     const { scrollYProgress } = useScroll();
 
-    // Use reduced frames for performance (load every 2nd frame)
-    // 120 frames -> 60 frames effective
-    const effectiveFrames = Math.floor(numFrames / 2);
+    // Use all frames for smoothness since we only have 48
+    const effectiveFrames = numFrames;
 
     // Transform scroll (0-1) to frame index
     const frameIndex = useTransform(scrollYProgress, [0, 1], [0, effectiveFrames - 1]);
@@ -39,20 +38,19 @@ export default function ScrollyCanvas({ numFrames = 120 }: { numFrames?: number 
         return () => window.removeEventListener("resize", handleResize);
     }, [isLoaded, images]); // Re-run if images load
 
-    // Preload images (Skip every 2nd frame)
+    // Preload images (Load ALL frames sequentially)
     useEffect(() => {
         const loadImages = async () => {
             const loadedImages: HTMLImageElement[] = [];
             const promises: Promise<void>[] = [];
 
-            let loadIndex = 0;
-            for (let i = 0; i < numFrames; i += 2) {
-                const currentIndex = i / 2; // Capture index safely
+            for (let i = 0; i < numFrames; i++) {
                 const promise = new Promise<void>((resolve) => {
                     const img = new Image();
-                    img.src = `/sequence/frame_${i.toString().padStart(3, "0")}.png`;
+                    // Add cache buster to ensure new sequence loads
+                    img.src = `/sequence/frame_${i.toString().padStart(3, "0")}.png?v=2`;
                     img.onload = () => {
-                        loadedImages[currentIndex] = img;
+                        loadedImages[i] = img;
                         resolve();
                     };
                     img.onerror = () => {
@@ -62,7 +60,7 @@ export default function ScrollyCanvas({ numFrames = 120 }: { numFrames?: number 
                 });
                 promises.push(promise);
                 // Pre-allocate to preserve order (though JS arrays are sparse)
-                loadedImages[currentIndex] = null as any;
+                loadedImages[i] = null as any;
             }
 
             await Promise.all(promises);
@@ -119,8 +117,17 @@ export default function ScrollyCanvas({ numFrames = 120 }: { numFrames?: number 
         <div className="relative w-full h-full">
             <canvas ref={canvasRef} className="block w-full h-full object-cover" />
             {!isLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center bg-[#121212] z-50 transition-opacity duration-500">
-                    <span className="text-white/50 text-sm font-cinzel tracking-widest animate-pulse">Loading Experience...</span>
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0a0a] z-50 transition-opacity duration-700">
+                    <motion.h1
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className="text-4xl md:text-6xl font-cinzel font-bold tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-br from-gray-100 via-gray-400 to-gray-600 animate-pulse"
+                        style={{ textShadow: "0px 0px 20px rgba(255,255,255,0.1)" }}
+                    >
+                        SREELESH C
+                    </motion.h1>
+                    <div className="mt-4 w-32 h-[1px] bg-gradient-to-r from-transparent via-gray-500 to-transparent opacity-50" />
                 </div>
             )}
         </div>
