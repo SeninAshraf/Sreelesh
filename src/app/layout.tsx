@@ -18,6 +18,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preload" href="/videos/senin.mp4" as="video" type="video/mp4" />
+      </head>
       <body className={`${inter.variable} ${cinzel.variable} font-sans bg-[#121212] text-white antialiased`}>
         <SmoothScroll>{children}</SmoothScroll>
       </body>

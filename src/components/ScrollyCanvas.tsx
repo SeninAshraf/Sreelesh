@@ -155,13 +155,13 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
             {isMobile ? (
                 <video
                     src="/videos/senin.mp4"
+                    preload="auto"
                     autoPlay
                     muted
                     loop
                     playsInline
                     className="absolute inset-0 w-full h-full object-cover"
                     onLoadedData={() => setContentLoaded(true)}
-                    onLoadedMetadata={() => setContentLoaded(true)}
                     onCanPlay={() => setContentLoaded(true)}
                 />
             ) : (
