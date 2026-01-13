@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useScroll, useMotionValueEvent, useTransform } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useMotionValueEvent, useTransform } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
 export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }) {
