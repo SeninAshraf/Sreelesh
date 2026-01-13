@@ -21,7 +21,7 @@ export default function ScrollyCanvas({ numFrames = 48 }: { numFrames?: number }
         checkMobile();
         window.addEventListener("resize", checkMobile);
 
-        const timer = setTimeout(() => setMinTimeElapsed(true), 2000);
+        const timer = setTimeout(() => setMinTimeElapsed(true), 1000);
 
         // Safety fallback: Ensure loader dismisses after 5s even if assets fail
         const safetyTimer = setTimeout(() => {
