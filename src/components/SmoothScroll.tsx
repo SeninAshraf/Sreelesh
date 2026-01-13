@@ -6,12 +6,13 @@ import Lenis from "lenis";
 export default function SmoothScroll({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const lenis = new Lenis({
-            duration: 1.8, // Increased for a "softer" floaty feel
-            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Exponential easing
+            duration: 1.5, // Balanced duration
+            easing: (t) => 1 - Math.pow(1 - t, 3), // Cubic easing for natural feel
             orientation: "vertical",
             gestureOrientation: "vertical",
             smoothWheel: true,
-            touchMultiplier: 3, // Highly responsive on touch
+            wheelMultiplier: 1.2, // Improved trackpad control
+            touchMultiplier: 2, // Stable touch response
             infinite: false,
         });
 
